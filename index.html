@@ -1,0 +1,150 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="description" content="Dashboard dos servicos mais solicitados no Painel Cidadao ate maio de 2026.">
+    <title>Painel Cidadao | Servicos Solicitados</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="styles.css">
+  </head>
+  <body>
+    <header class="page-header">
+      <div class="header-copy">
+        <p class="eyebrow">Painel Cidadao</p>
+        <h1>Servicos mais solicitados</h1>
+        <p class="subtitle">Evolucao, canais e rankings de demandas registradas entre 2019 e maio de 2026.</p>
+      </div>
+      <div class="source-box" aria-label="Fonte dos dados">
+        <span>Fonte</span>
+        <strong>top_servicos_solicitados_atemaio2026.xlsx</strong>
+      </div>
+    </header>
+
+    <main>
+      <section class="filters-panel" aria-label="Filtros">
+        <label>
+          Ano
+          <select id="yearFilter"></select>
+        </label>
+        <label>
+          Sistema
+          <select id="appFilter"></select>
+        </label>
+        <label>
+          Canal
+          <select id="channelFilter"></select>
+        </label>
+        <label class="search-field">
+          Buscar servico
+          <input id="searchFilter" type="search" placeholder="Digite parte do nome">
+        </label>
+        <button id="resetFilters" class="ghost-button" type="button">Limpar</button>
+      </section>
+
+      <section class="kpi-grid" aria-label="Indicadores principais">
+        <article class="kpi-card">
+          <span>Total de solicitacoes</span>
+          <strong id="kpiTotal">0</strong>
+          <small id="kpiRecords">0 registros filtrados</small>
+        </article>
+        <article class="kpi-card">
+          <span>Servico lider</span>
+          <strong id="kpiTopService">-</strong>
+          <small id="kpiTopServiceValue">0 solicitacoes</small>
+        </article>
+        <article class="kpi-card">
+          <span>Sistema lider</span>
+          <strong id="kpiTopApp">-</strong>
+          <small id="kpiTopAppValue">0 solicitacoes</small>
+        </article>
+        <article class="kpi-card">
+          <span>Participacao digital</span>
+          <strong id="kpiDigitalShare">0%</strong>
+          <small>Digital + App</small>
+        </article>
+      </section>
+
+      <section class="dashboard-grid">
+        <article class="panel panel-wide">
+          <div class="panel-heading">
+            <div>
+              <h2>Evolucao anual</h2>
+              <p>Total de solicitacoes por ano</p>
+            </div>
+          </div>
+          <div id="yearChart" class="chart-area" role="img" aria-label="Grafico de evolucao anual"></div>
+        </article>
+
+        <article class="panel">
+          <div class="panel-heading">
+            <div>
+              <h2>Canais</h2>
+              <p>Distribuicao por atendimento</p>
+            </div>
+          </div>
+          <div id="channelChart" class="bar-list"></div>
+        </article>
+
+        <article class="panel">
+          <div class="panel-heading">
+            <div>
+              <h2>Sistemas</h2>
+              <p>Volume por app</p>
+            </div>
+          </div>
+          <div id="appChart" class="bar-list"></div>
+        </article>
+
+        <article class="panel panel-wide">
+          <div class="panel-heading">
+            <div>
+              <h2>Ranking de servicos</h2>
+              <p>Top demandas no recorte selecionado</p>
+            </div>
+            <span id="rankingCount" class="pill">Top 15</span>
+          </div>
+          <div id="serviceRanking" class="ranking-list"></div>
+        </article>
+
+        <article class="panel">
+          <div class="panel-heading">
+            <div>
+              <h2>Composicao anual</h2>
+              <p>Sistema lider em cada ano</p>
+            </div>
+          </div>
+          <div id="annualLeaders" class="leader-list"></div>
+        </article>
+
+        <article class="panel panel-table">
+          <div class="panel-heading">
+            <div>
+              <h2>Dados detalhados</h2>
+              <p>Linhas agregadas da planilha</p>
+            </div>
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Servico</th>
+                  <th>Sistema</th>
+                  <th>Ano</th>
+                  <th>Canal</th>
+                  <th>Total</th>
+                </tr>
+              </thead>
+              <tbody id="detailsTable"></tbody>
+            </table>
+          </div>
+        </article>
+      </section>
+    </main>
+
+    <script src="data.js"></script>
+    <script src="app.js"></script>
+  </body>
+</html>
