@@ -30,7 +30,6 @@
     searchFilter: document.querySelector("#searchFilter"),
     resetFilters: document.querySelector("#resetFilters"),
     kpiTotal: document.querySelector("#kpiTotal"),
-    kpiRecords: document.querySelector("#kpiRecords"),
     kpiTopService: document.querySelector("#kpiTopService"),
     kpiTopServiceValue: document.querySelector("#kpiTopServiceValue"),
     kpiTopApp: document.querySelector("#kpiTopApp"),
@@ -164,7 +163,6 @@
       .reduce((sum, item) => sum + item.total, 0);
 
     els.kpiTotal.textContent = formatNumber(total);
-    els.kpiRecords.textContent = `${formatNumber(list.length)} registros filtrados`;
     els.kpiTopService.textContent = truncate(serviceTop[0], 58);
     els.kpiTopService.title = serviceTop[0];
     els.kpiTopServiceValue.textContent = `${formatNumber(serviceTop[1])} solicitacoes`;
