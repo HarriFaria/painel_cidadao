@@ -229,7 +229,7 @@ main {
 
 .filters-panel {
   display: grid;
-  grid-template-columns: repeat(4, minmax(130px, 1fr)) minmax(220px, 1.5fr) auto;
+  grid-template-columns: repeat(4, minmax(120px, 1fr)) minmax(260px, 1.6fr) auto;
   gap: 12px;
   align-items: end;
   padding: 16px;
@@ -238,6 +238,10 @@ main {
   border-top: 4px solid var(--green);
   border-radius: 4px;
   box-shadow: var(--shadow);
+}
+
+.service-filter .check-options {
+  min-width: min(620px, 90vw);
 }
 
 label {
@@ -721,7 +725,7 @@ tbody tr:hover {
     grid-template-columns: 1fr 1fr;
   }
 
-  .search-field,
+  .service-filter,
   .panel-wide,
   .panel-table {
     grid-column: 1 / -1;
@@ -758,7 +762,7 @@ tbody tr:hover {
     grid-template-columns: 1fr;
   }
 
-  .search-field,
+  .service-filter,
   .panel-wide,
   .panel-table {
     grid-column: auto;

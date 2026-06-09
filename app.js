@@ -7,7 +7,7 @@
     months: new Set(),
     apps: new Set(),
     channels: new Set(),
-    search: "",
+    services: new Set(),
   };
 
   const appLabels = {
@@ -31,7 +31,8 @@
     appFilter: document.querySelector("#appFilter"),
     channelFilterButton: document.querySelector("#channelFilterButton"),
     channelFilter: document.querySelector("#channelFilter"),
-    searchFilter: document.querySelector("#searchFilter"),
+    serviceFilterButton: document.querySelector("#serviceFilterButton"),
+    serviceFilter: document.querySelector("#serviceFilter"),
     resetFilters: document.querySelector("#resetFilters"),
     kpiTotal: document.querySelector("#kpiTotal"),
     kpiTopService: document.querySelector("#kpiTopService"),
@@ -171,6 +172,7 @@
       [els.monthFilterButton, els.monthFilter],
       [els.appFilterButton, els.appFilter],
       [els.channelFilterButton, els.channelFilter],
+      [els.serviceFilterButton, els.serviceFilter],
     ].forEach(([button, container]) => closeCombo(button, container));
   }
 
@@ -192,14 +194,13 @@
   }
 
   function filterRecords() {
-    const term = normalizeText(state.search);
     return records.filter((item) => {
       const yearOk = !state.years.size || state.years.has(String(item.year));
       const monthOk = !state.months.size || state.months.has(String(item.month));
       const appOk = !state.apps.size || state.apps.has(item.app_name);
       const channelOk = !state.channels.size || state.channels.has(item.demand_channel);
-      const searchOk = !term || normalizeText(item.service).includes(term);
-      return yearOk && monthOk && appOk && channelOk && searchOk;
+      const serviceOk = !state.services.size || state.services.has(item.service);
+      return yearOk && monthOk && appOk && channelOk && serviceOk;
     });
   }
 
@@ -393,6 +394,7 @@
     if (state.months.size) parts.push(selectedLabel(state.months, (month) => String(month).padStart(2, "0")));
     if (state.apps.size) parts.push(selectedLabel(state.apps));
     if (state.channels.size) parts.push(selectedLabel(state.channels));
+    if (state.services.size) parts.push(selectedLabel(state.services));
     return `${parts.join("_")}.csv`;
   }
 
@@ -437,6 +439,7 @@
     updateComboSummary(els.monthFilterButton, state.months, "Todos os meses", monthName);
     updateComboSummary(els.appFilterButton, state.apps, "Todos os sistemas", appName);
     updateComboSummary(els.channelFilterButton, state.channels, "Todos os canais");
+    updateComboSummary(els.serviceFilterButton, state.services, "Todos os servicos");
     renderKpis(filtered);
     renderYearChart(filtered);
     renderChannels(filtered);
@@ -478,6 +481,7 @@
     els.monthFilterButton.addEventListener("click", () => toggleCombo(els.monthFilterButton, els.monthFilter));
     els.appFilterButton.addEventListener("click", () => toggleCombo(els.appFilterButton, els.appFilter));
     els.channelFilterButton.addEventListener("click", () => toggleCombo(els.channelFilterButton, els.channelFilter));
+    els.serviceFilterButton.addEventListener("click", () => toggleCombo(els.serviceFilterButton, els.serviceFilter));
     document.addEventListener("click", (event) => {
       if (!event.target.closest(".check-filter")) closeAllCombos();
     });
@@ -488,21 +492,18 @@
     bindCheckboxGroup(els.monthFilter, state.months);
     bindCheckboxGroup(els.appFilter, state.apps);
     bindCheckboxGroup(els.channelFilter, state.channels);
-    els.searchFilter.addEventListener("input", (event) => {
-      state.search = event.target.value;
-      render();
-    });
+    bindCheckboxGroup(els.serviceFilter, state.services);
     els.resetFilters.addEventListener("click", () => {
       state.years.clear();
       state.months.clear();
       state.apps.clear();
       state.channels.clear();
-      state.search = "";
+      state.services.clear();
       renderCheckboxGroup(els.yearFilter, uniqueSorted("year"), state.years, null, "year", "Todos os anos");
       syncMonthFilter();
       renderCheckboxGroup(els.appFilter, uniqueSorted("app_name"), state.apps, appName, "app", "Todos os sistemas");
       renderCheckboxGroup(els.channelFilter, uniqueSorted("demand_channel"), state.channels, null, "channel", "Todos os canais");
-      els.searchFilter.value = "";
+      renderCheckboxGroup(els.serviceFilter, uniqueSorted("service"), state.services, null, "service", "Todos os servicos");
       render();
     });
     els.exportCsv.addEventListener("click", exportCsv);
@@ -513,6 +514,7 @@
     syncMonthFilter();
     renderCheckboxGroup(els.appFilter, uniqueSorted("app_name"), state.apps, appName, "app", "Todos os sistemas");
     renderCheckboxGroup(els.channelFilter, uniqueSorted("demand_channel"), state.channels, null, "channel", "Todos os canais");
+    renderCheckboxGroup(els.serviceFilter, uniqueSorted("service"), state.services, null, "service", "Todos os servicos");
     bindEvents();
     render();
   }
