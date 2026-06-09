@@ -11,9 +11,23 @@
     <link rel="stylesheet" href="styles.css">
   </head>
   <body>
+    <div class="utility-bar" aria-label="Barra institucional">
+      <span>Governo de Mato Grosso</span>
+      <nav aria-label="Links institucionais">
+        <a href="#conteudo">Ir para conteudo</a>
+        <a href="https://www.mti.mt.gov.br/" target="_blank" rel="noreferrer">MTI</a>
+        <button id="contrastToggle" type="button" aria-pressed="false">Contraste</button>
+      </nav>
+    </div>
     <header class="page-header">
+      <div class="brand-row">
+        <div class="brand-mark" aria-hidden="true">MTI</div>
+        <div>
+          <strong>Empresa Mato-grossense de Tecnologia da Informacao</strong>
+          <span>Painel Cidadao</span>
+        </div>
+      </div>
       <div class="header-copy">
-        <p class="eyebrow">Painel Cidadao</p>
         <h1>Servicos mais solicitados</h1>
         <p class="subtitle">Evolucao, canais e rankings de demandas registradas entre 2019 e maio de 2026.</p>
       </div>
@@ -23,7 +37,7 @@
       </div>
     </header>
 
-    <main>
+    <main id="conteudo">
       <section class="filters-panel" aria-label="Filtros">
         <label>
           Ano

@@ -22,6 +22,7 @@
   };
 
   const els = {
+    contrastToggle: document.querySelector("#contrastToggle"),
     yearFilter: document.querySelector("#yearFilter"),
     monthFilter: document.querySelector("#monthFilter"),
     appFilter: document.querySelector("#appFilter"),
@@ -385,6 +386,10 @@
   }
 
   function bindEvents() {
+    els.contrastToggle.addEventListener("click", () => {
+      const isActive = document.body.classList.toggle("high-contrast");
+      els.contrastToggle.setAttribute("aria-pressed", String(isActive));
+    });
     els.yearFilter.addEventListener("change", (event) => {
       state.year = event.target.value;
       syncMonthFilter();
