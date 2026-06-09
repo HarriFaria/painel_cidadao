@@ -3,10 +3,10 @@
   const records = payload.records || [];
 
   const state = {
-    year: "all",
-    month: "all",
-    app: "all",
-    channel: "all",
+    years: new Set(),
+    months: new Set(),
+    apps: new Set(),
+    channels: new Set(),
     search: "",
   };
 
@@ -100,28 +100,49 @@
     });
   }
 
-  function fillSelect(select, options, allLabel, labeler) {
-    select.innerHTML = "";
-    select.append(new Option(allLabel, "all"));
-    options.forEach((option) => {
-      select.append(new Option(labeler ? labeler(option) : option, option));
-    });
-  }
-
   function availableMonths() {
-    const scopedRecords = state.year === "all"
+    const scopedRecords = !state.years.size
       ? records
-      : records.filter((item) => String(item.year) === state.year);
+      : records.filter((item) => state.years.has(String(item.year)));
     return [...new Set(scopedRecords.map((item) => item.month))].sort((a, b) => a - b);
   }
 
   function syncMonthFilter() {
     const months = availableMonths();
-    if (state.month !== "all" && !months.some((month) => String(month) === state.month)) {
-      state.month = "all";
-    }
-    fillSelect(els.monthFilter, months, "Todos os meses", monthName);
-    els.monthFilter.value = state.month;
+    state.months.forEach((month) => {
+      if (!months.some((availableMonth) => String(availableMonth) === month)) {
+        state.months.delete(month);
+      }
+    });
+    renderCheckboxGroup(els.monthFilter, months, state.months, monthName, "month", "Todos os meses");
+  }
+
+  function renderCheckboxGroup(container, options, selectedSet, labeler, name, allLabel) {
+    const allOption = `
+      <label class="check-option">
+        <input type="checkbox" name="${name}" value="__all" data-all="true"${selectedSet.size ? "" : " checked"}>
+        <span>${escapeHtml(allLabel)}</span>
+      </label>
+    `;
+    const optionItems = options.map((option) => {
+      const value = String(option);
+      const checked = selectedSet.has(value) ? " checked" : "";
+      return `
+        <label class="check-option">
+          <input type="checkbox" name="${name}" value="${escapeHtml(value)}"${checked}>
+          <span>${escapeHtml(labeler ? labeler(option) : option)}</span>
+        </label>
+      `;
+    }).join("");
+    container.innerHTML = allOption + optionItems;
+  }
+
+  function selectedLabel(set, labeler) {
+    return [...set].map((value) => filenamePart(labeler ? labeler(value) : value)).join("-");
+  }
+
+  function filenamePart(value) {
+    return normalizeText(value).replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "");
   }
 
   function groupBy(list, keyFn) {
@@ -136,10 +157,10 @@
   function filterRecords() {
     const term = normalizeText(state.search);
     return records.filter((item) => {
-      const yearOk = state.year === "all" || String(item.year) === state.year;
-      const monthOk = state.month === "all" || String(item.month) === state.month;
-      const appOk = state.app === "all" || item.app_name === state.app;
-      const channelOk = state.channel === "all" || item.demand_channel === state.channel;
+      const yearOk = !state.years.size || state.years.has(String(item.year));
+      const monthOk = !state.months.size || state.months.has(String(item.month));
+      const appOk = !state.apps.size || state.apps.has(item.app_name);
+      const channelOk = !state.channels.size || state.channels.has(item.demand_channel);
       const searchOk = !term || normalizeText(item.service).includes(term);
       return yearOk && monthOk && appOk && channelOk && searchOk;
     });
@@ -172,11 +193,11 @@
   }
 
   function renderYearChart(list) {
-    const showMonthly = state.year !== "all";
+    const showMonthly = state.years.size === 1;
     const grouped = new Map(groupBy(list, (item) => showMonthly ? item.month : item.year));
     const labels = showMonthly
-      ? availableMonths().filter((month) => state.month === "all" || String(month) === state.month)
-      : uniqueSorted("year").filter((year) => state.year === "all" || String(year) === state.year);
+      ? availableMonths().filter((month) => !state.months.size || state.months.has(String(month)))
+      : uniqueSorted("year").filter((year) => !state.years.size || state.years.has(String(year)));
     const values = labels.map((label) => grouped.get(label) || 0);
     const max = Math.max(...values, 1);
     const width = 860;
@@ -203,7 +224,8 @@
       const value = Math.round(max * tick);
       return `<g><line x1="${pad.left}" y1="${y}" x2="${width - pad.right}" y2="${y}" stroke="#e6ece8"/><text x="${pad.left - 12}" y="${y + 4}" text-anchor="end" class="axis-label">${compact(value)}</text></g>`;
     }).join("");
-    els.timelineSubtitle.textContent = showMonthly ? `Total de solicitacoes por mes em ${state.year}` : "Total de solicitacoes por ano";
+    const selectedYear = [...state.years][0];
+    els.timelineSubtitle.textContent = showMonthly ? `Total de solicitacoes por mes em ${selectedYear}` : "Total de solicitacoes por ano";
     const yearLabels = points.map((point) => `<text x="${point.x}" y="${height - 12}" text-anchor="middle" class="axis-label">${point.axisLabel}</text>`).join("");
     const circles = points.map((point) => `<g><circle class="point" cx="${point.x}" cy="${point.y}" r="6"/><title>${showMonthly ? monthName(point.label) : point.label}: ${formatNumber(point.value)}</title></g>`).join("");
     const valueLabels = points.map((point) => `<text x="${point.x}" y="${Math.max(point.y - 14, 14)}" text-anchor="middle" class="axis-label">${compact(point.value)}</text>`).join("");
@@ -281,7 +303,7 @@
   }
 
   function renderAnnualLeaders(list) {
-    const years = uniqueSorted("year").filter((year) => state.year === "all" || String(year) === state.year);
+    const years = uniqueSorted("year").filter((year) => !state.years.size || state.years.has(String(year)));
     const rows = years.map((year) => {
       const yearRecords = list.filter((item) => item.year === year);
       const leader = groupBy(yearRecords, (item) => item.app_name)[0] || ["-", 0];
@@ -330,10 +352,10 @@
 
   function currentCsvFileName() {
     const parts = ["painel_cidadao"];
-    if (state.year !== "all") parts.push(state.year);
-    if (state.month !== "all") parts.push(String(state.month).padStart(2, "0"));
-    if (state.app !== "all") parts.push(state.app);
-    if (state.channel !== "all") parts.push(normalizeText(state.channel).replace(/\s+/g, "-"));
+    if (state.years.size) parts.push(selectedLabel(state.years));
+    if (state.months.size) parts.push(selectedLabel(state.months, (month) => String(month).padStart(2, "0")));
+    if (state.apps.size) parts.push(selectedLabel(state.apps));
+    if (state.channels.size) parts.push(selectedLabel(state.channels));
     return `${parts.join("_")}.csv`;
   }
 
@@ -383,42 +405,52 @@
     renderTable(filtered);
   }
 
+  function bindCheckboxGroup(container, selectedSet, onChange) {
+    container.addEventListener("change", (event) => {
+      if (event.target.type !== "checkbox") return;
+
+      if (event.target.dataset.all === "true") {
+        selectedSet.clear();
+        container.querySelectorAll('input[type="checkbox"]').forEach((input) => {
+          input.checked = input.dataset.all === "true";
+        });
+      } else if (event.target.checked) {
+        selectedSet.add(event.target.value);
+      } else {
+        selectedSet.delete(event.target.value);
+      }
+
+      const allInput = container.querySelector('input[data-all="true"]');
+      if (allInput) allInput.checked = !selectedSet.size;
+
+      if (onChange) onChange();
+      render();
+    });
+  }
+
   function bindEvents() {
     els.contrastToggle.addEventListener("click", () => {
       const isActive = document.body.classList.toggle("high-contrast");
       els.contrastToggle.setAttribute("aria-pressed", String(isActive));
     });
-    els.yearFilter.addEventListener("change", (event) => {
-      state.year = event.target.value;
-      syncMonthFilter();
-      render();
-    });
-    els.monthFilter.addEventListener("change", (event) => {
-      state.month = event.target.value;
-      render();
-    });
-    els.appFilter.addEventListener("change", (event) => {
-      state.app = event.target.value;
-      render();
-    });
-    els.channelFilter.addEventListener("change", (event) => {
-      state.channel = event.target.value;
-      render();
-    });
+    bindCheckboxGroup(els.yearFilter, state.years, syncMonthFilter);
+    bindCheckboxGroup(els.monthFilter, state.months);
+    bindCheckboxGroup(els.appFilter, state.apps);
+    bindCheckboxGroup(els.channelFilter, state.channels);
     els.searchFilter.addEventListener("input", (event) => {
       state.search = event.target.value;
       render();
     });
     els.resetFilters.addEventListener("click", () => {
-      state.year = "all";
-      state.month = "all";
-      state.app = "all";
-      state.channel = "all";
+      state.years.clear();
+      state.months.clear();
+      state.apps.clear();
+      state.channels.clear();
       state.search = "";
-      els.yearFilter.value = "all";
+      renderCheckboxGroup(els.yearFilter, uniqueSorted("year"), state.years, null, "year", "Todos os anos");
       syncMonthFilter();
-      els.appFilter.value = "all";
-      els.channelFilter.value = "all";
+      renderCheckboxGroup(els.appFilter, uniqueSorted("app_name"), state.apps, appName, "app", "Todos os sistemas");
+      renderCheckboxGroup(els.channelFilter, uniqueSorted("demand_channel"), state.channels, null, "channel", "Todos os canais");
       els.searchFilter.value = "";
       render();
     });
@@ -426,10 +458,10 @@
   }
 
   function init() {
-    fillSelect(els.yearFilter, uniqueSorted("year"), "Todos os anos");
+    renderCheckboxGroup(els.yearFilter, uniqueSorted("year"), state.years, null, "year", "Todos os anos");
     syncMonthFilter();
-    fillSelect(els.appFilter, uniqueSorted("app_name"), "Todos os sistemas", appName);
-    fillSelect(els.channelFilter, uniqueSorted("demand_channel"), "Todos os canais");
+    renderCheckboxGroup(els.appFilter, uniqueSorted("app_name"), state.apps, appName, "app", "Todos os sistemas");
+    renderCheckboxGroup(els.channelFilter, uniqueSorted("demand_channel"), state.channels, null, "channel", "Todos os canais");
     bindEvents();
     render();
   }

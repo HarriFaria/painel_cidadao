@@ -249,6 +249,66 @@ label {
   text-transform: uppercase;
 }
 
+fieldset {
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+legend {
+  margin-bottom: 7px;
+  color: var(--muted);
+  font-size: 0.78rem;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.check-options {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  min-height: 42px;
+  max-height: 94px;
+  overflow: auto;
+  flex-wrap: wrap;
+  padding: 6px;
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  background: #fff;
+}
+
+.check-option {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 28px;
+  padding: 0 8px;
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  background: var(--surface-soft);
+  color: var(--ink);
+  cursor: pointer;
+  font-size: 0.78rem;
+  font-weight: 800;
+  text-transform: none;
+  white-space: nowrap;
+}
+
+.check-option input {
+  width: 14px;
+  min-height: 0;
+  height: 14px;
+  margin: 0;
+  accent-color: var(--green);
+}
+
+.check-option:has(input:checked) {
+  border-color: var(--green);
+  background: var(--green);
+  color: #fff;
+}
+
 select,
 input {
   width: 100%;

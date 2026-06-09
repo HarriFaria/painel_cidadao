@@ -39,22 +39,22 @@
 
     <main id="conteudo">
       <section class="filters-panel" aria-label="Filtros">
-        <label>
-          Ano
-          <select id="yearFilter"></select>
-        </label>
-        <label>
-          Mes
-          <select id="monthFilter"></select>
-        </label>
-        <label>
-          Sistema
-          <select id="appFilter"></select>
-        </label>
-        <label>
-          Canal
-          <select id="channelFilter"></select>
-        </label>
+        <fieldset class="check-filter">
+          <legend>Ano</legend>
+          <div id="yearFilter" class="check-options"></div>
+        </fieldset>
+        <fieldset class="check-filter">
+          <legend>Mes</legend>
+          <div id="monthFilter" class="check-options"></div>
+        </fieldset>
+        <fieldset class="check-filter">
+          <legend>Sistema</legend>
+          <div id="appFilter" class="check-options"></div>
+        </fieldset>
+        <fieldset class="check-filter">
+          <legend>Canal</legend>
+          <div id="channelFilter" class="check-options"></div>
+        </fieldset>
         <label class="search-field">
           Buscar servico
           <input id="searchFilter" type="search" placeholder="Digite parte do nome">
