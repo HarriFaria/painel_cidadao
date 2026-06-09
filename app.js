@@ -4,6 +4,7 @@
 
   const state = {
     year: "all",
+    month: "all",
     app: "all",
     channel: "all",
     search: "",
@@ -22,6 +23,7 @@
 
   const els = {
     yearFilter: document.querySelector("#yearFilter"),
+    monthFilter: document.querySelector("#monthFilter"),
     appFilter: document.querySelector("#appFilter"),
     channelFilter: document.querySelector("#channelFilter"),
     searchFilter: document.querySelector("#searchFilter"),
@@ -33,6 +35,7 @@
     kpiTopApp: document.querySelector("#kpiTopApp"),
     kpiTopAppValue: document.querySelector("#kpiTopAppValue"),
     kpiDigitalShare: document.querySelector("#kpiDigitalShare"),
+    timelineSubtitle: document.querySelector("#timelineSubtitle"),
     yearChart: document.querySelector("#yearChart"),
     channelChart: document.querySelector("#channelChart"),
     appChart: document.querySelector("#appChart"),
@@ -47,6 +50,20 @@
     maximumFractionDigits: 1,
     minimumFractionDigits: 0,
   });
+  const monthNames = [
+    "Janeiro",
+    "Fevereiro",
+    "Marco",
+    "Abril",
+    "Maio",
+    "Junho",
+    "Julho",
+    "Agosto",
+    "Setembro",
+    "Outubro",
+    "Novembro",
+    "Dezembro",
+  ];
 
   function formatNumber(value) {
     return numberFmt.format(value || 0);
@@ -58,6 +75,14 @@
 
   function appName(value) {
     return appLabels[value] || value;
+  }
+
+  function monthName(value) {
+    return monthNames[Number(value) - 1] || value;
+  }
+
+  function monthShortName(value) {
+    return monthName(value).slice(0, 3);
   }
 
   function normalizeText(value) {
@@ -82,6 +107,22 @@
     });
   }
 
+  function availableMonths() {
+    const scopedRecords = state.year === "all"
+      ? records
+      : records.filter((item) => String(item.year) === state.year);
+    return [...new Set(scopedRecords.map((item) => item.month))].sort((a, b) => a - b);
+  }
+
+  function syncMonthFilter() {
+    const months = availableMonths();
+    if (state.month !== "all" && !months.some((month) => String(month) === state.month)) {
+      state.month = "all";
+    }
+    fillSelect(els.monthFilter, months, "Todos os meses", monthName);
+    els.monthFilter.value = state.month;
+  }
+
   function groupBy(list, keyFn) {
     const map = new Map();
     list.forEach((item) => {
@@ -95,10 +136,11 @@
     const term = normalizeText(state.search);
     return records.filter((item) => {
       const yearOk = state.year === "all" || String(item.year) === state.year;
+      const monthOk = state.month === "all" || String(item.month) === state.month;
       const appOk = state.app === "all" || item.app_name === state.app;
       const channelOk = state.channel === "all" || item.demand_channel === state.channel;
       const searchOk = !term || normalizeText(item.service).includes(term);
-      return yearOk && appOk && channelOk && searchOk;
+      return yearOk && monthOk && appOk && channelOk && searchOk;
     });
   }
 
@@ -130,20 +172,23 @@
   }
 
   function renderYearChart(list) {
-    const grouped = new Map(groupBy(list, (item) => item.year));
-    const years = uniqueSorted("year").filter((year) => state.year === "all" || String(year) === state.year);
-    const values = years.map((year) => grouped.get(year) || 0);
+    const showMonthly = state.year !== "all";
+    const grouped = new Map(groupBy(list, (item) => showMonthly ? item.month : item.year));
+    const labels = showMonthly
+      ? availableMonths().filter((month) => state.month === "all" || String(month) === state.month)
+      : uniqueSorted("year").filter((year) => state.year === "all" || String(year) === state.year);
+    const values = labels.map((label) => grouped.get(label) || 0);
     const max = Math.max(...values, 1);
     const width = 860;
     const height = 330;
     const pad = { top: 24, right: 22, bottom: 42, left: 72 };
     const innerW = width - pad.left - pad.right;
     const innerH = height - pad.top - pad.bottom;
-    const xStep = years.length > 1 ? innerW / (years.length - 1) : innerW;
-    const points = years.map((year, index) => {
-      const x = pad.left + (years.length > 1 ? index * xStep : innerW / 2);
+    const xStep = labels.length > 1 ? innerW / (labels.length - 1) : innerW;
+    const points = labels.map((label, index) => {
+      const x = pad.left + (labels.length > 1 ? index * xStep : innerW / 2);
       const y = pad.top + innerH - (values[index] / max) * innerH;
-      return { year, value: values[index], x, y };
+      return { label, axisLabel: showMonthly ? monthShortName(label) : label, value: values[index], x, y };
     });
 
     if (!points.length) {
@@ -158,8 +203,9 @@
       const value = Math.round(max * tick);
       return `<g><line x1="${pad.left}" y1="${y}" x2="${width - pad.right}" y2="${y}" stroke="#e6ece8"/><text x="${pad.left - 12}" y="${y + 4}" text-anchor="end" class="axis-label">${compact(value)}</text></g>`;
     }).join("");
-    const yearLabels = points.map((point) => `<text x="${point.x}" y="${height - 12}" text-anchor="middle" class="axis-label">${point.year}</text>`).join("");
-    const circles = points.map((point) => `<g><circle class="point" cx="${point.x}" cy="${point.y}" r="6"/><title>${point.year}: ${formatNumber(point.value)}</title></g>`).join("");
+    els.timelineSubtitle.textContent = showMonthly ? `Total de solicitacoes por mes em ${state.year}` : "Total de solicitacoes por ano";
+    const yearLabels = points.map((point) => `<text x="${point.x}" y="${height - 12}" text-anchor="middle" class="axis-label">${point.axisLabel}</text>`).join("");
+    const circles = points.map((point) => `<g><circle class="point" cx="${point.x}" cy="${point.y}" r="6"/><title>${showMonthly ? monthName(point.label) : point.label}: ${formatNumber(point.value)}</title></g>`).join("");
     const valueLabels = points.map((point) => `<text x="${point.x}" y="${Math.max(point.y - 14, 14)}" text-anchor="middle" class="axis-label">${compact(point.value)}</text>`).join("");
 
     els.yearChart.innerHTML = `
@@ -261,7 +307,7 @@
   function renderTable(list) {
     const rows = [...list].sort((a, b) => b.total - a.total).slice(0, 120);
     if (!rows.length) {
-      els.detailsTable.innerHTML = '<tr><td colspan="5" class="empty-state">Nenhum dado encontrado</td></tr>';
+      els.detailsTable.innerHTML = '<tr><td colspan="6" class="empty-state">Nenhum dado encontrado</td></tr>';
       return;
     }
 
@@ -270,6 +316,7 @@
         <td>${escapeHtml(item.service)}</td>
         <td>${escapeHtml(appName(item.app_name))}</td>
         <td>${item.year}</td>
+        <td>${escapeHtml(monthName(item.month))}</td>
         <td>${escapeHtml(item.demand_channel)}</td>
         <td>${formatNumber(item.total)}</td>
       </tr>
@@ -299,6 +346,11 @@
   function bindEvents() {
     els.yearFilter.addEventListener("change", (event) => {
       state.year = event.target.value;
+      syncMonthFilter();
+      render();
+    });
+    els.monthFilter.addEventListener("change", (event) => {
+      state.month = event.target.value;
       render();
     });
     els.appFilter.addEventListener("change", (event) => {
@@ -315,10 +367,12 @@
     });
     els.resetFilters.addEventListener("click", () => {
       state.year = "all";
+      state.month = "all";
       state.app = "all";
       state.channel = "all";
       state.search = "";
       els.yearFilter.value = "all";
+      syncMonthFilter();
       els.appFilter.value = "all";
       els.channelFilter.value = "all";
       els.searchFilter.value = "";
@@ -328,6 +382,7 @@
 
   function init() {
     fillSelect(els.yearFilter, uniqueSorted("year"), "Todos os anos");
+    syncMonthFilter();
     fillSelect(els.appFilter, uniqueSorted("app_name"), "Todos os sistemas", appName);
     fillSelect(els.channelFilter, uniqueSorted("demand_channel"), "Todos os canais");
     bindEvents();

@@ -109,7 +109,7 @@ main {
 
 .filters-panel {
   display: grid;
-  grid-template-columns: repeat(3, minmax(150px, 1fr)) minmax(220px, 1.5fr) auto;
+  grid-template-columns: repeat(4, minmax(130px, 1fr)) minmax(220px, 1.5fr) auto;
   gap: 12px;
   align-items: end;
   padding: 14px;

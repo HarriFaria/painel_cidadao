@@ -30,6 +30,10 @@
           <select id="yearFilter"></select>
         </label>
         <label>
+          Mes
+          <select id="monthFilter"></select>
+        </label>
+        <label>
           Sistema
           <select id="appFilter"></select>
         </label>
@@ -71,11 +75,11 @@
         <article class="panel panel-wide">
           <div class="panel-heading">
             <div>
-              <h2>Evolucao anual</h2>
-              <p>Total de solicitacoes por ano</p>
+              <h2>Evolucao temporal</h2>
+              <p id="timelineSubtitle">Total de solicitacoes por ano</p>
             </div>
           </div>
-          <div id="yearChart" class="chart-area" role="img" aria-label="Grafico de evolucao anual"></div>
+          <div id="yearChart" class="chart-area" role="img" aria-label="Grafico de evolucao temporal"></div>
         </article>
 
         <article class="panel">
@@ -133,6 +137,7 @@
                   <th>Servico</th>
                   <th>Sistema</th>
                   <th>Ano</th>
+                  <th>Mes</th>
                   <th>Canal</th>
                   <th>Total</th>
                 </tr>

@@ -17,6 +17,6 @@ O projeto nao precisa de build. No Vercel, selecione este repositorio e mantenha
 ## Fonte dos dados
 
 - Arquivo: `top_servicos_solicitados_atemaio2026.xlsx`
-- Aba: `painel_cidadao user_demands`
+- Aba: `painel_cidadao_maio_2026`
 - Periodo: 2019 a 2026
-- Observacao: os dados de 2026 foram tratados como acumulado ate maio, conforme o nome do arquivo original.
+- Observacao: os dados possuem granularidade mensal; 2026 contem registros de janeiro a maio.
