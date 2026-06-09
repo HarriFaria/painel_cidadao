@@ -23,9 +23,13 @@
 
   const els = {
     contrastToggle: document.querySelector("#contrastToggle"),
+    yearFilterButton: document.querySelector("#yearFilterButton"),
     yearFilter: document.querySelector("#yearFilter"),
+    monthFilterButton: document.querySelector("#monthFilterButton"),
     monthFilter: document.querySelector("#monthFilter"),
+    appFilterButton: document.querySelector("#appFilterButton"),
     appFilter: document.querySelector("#appFilter"),
+    channelFilterButton: document.querySelector("#channelFilterButton"),
     channelFilter: document.querySelector("#channelFilter"),
     searchFilter: document.querySelector("#searchFilter"),
     resetFilters: document.querySelector("#resetFilters"),
@@ -115,6 +119,8 @@
       }
     });
     renderCheckboxGroup(els.monthFilter, months, state.months, monthName, "month", "Todos os meses");
+    updateComboSummary(els.monthFilterButton, state.months, "Todos os meses", monthName);
+    closeCombo(els.monthFilterButton, els.monthFilter);
   }
 
   function renderCheckboxGroup(container, options, selectedSet, labeler, name, allLabel) {
@@ -135,6 +141,37 @@
       `;
     }).join("");
     container.innerHTML = allOption + optionItems;
+  }
+
+  function updateComboSummary(button, selectedSet, allLabel, labeler) {
+    if (!selectedSet.size) {
+      button.textContent = allLabel;
+      return;
+    }
+
+    const values = [...selectedSet].map((value) => labeler ? labeler(value) : value);
+    button.textContent = values.length <= 2 ? values.join(", ") : `${values.length} selecionados`;
+  }
+
+  function closeCombo(button, container) {
+    button.setAttribute("aria-expanded", "false");
+    container.hidden = true;
+  }
+
+  function toggleCombo(button, container) {
+    const willOpen = container.hidden;
+    closeAllCombos();
+    button.setAttribute("aria-expanded", String(willOpen));
+    container.hidden = !willOpen;
+  }
+
+  function closeAllCombos() {
+    [
+      [els.yearFilterButton, els.yearFilter],
+      [els.monthFilterButton, els.monthFilter],
+      [els.appFilterButton, els.appFilter],
+      [els.channelFilterButton, els.channelFilter],
+    ].forEach(([button, container]) => closeCombo(button, container));
   }
 
   function selectedLabel(set, labeler) {
@@ -396,6 +433,10 @@
   function render() {
     const filtered = filterRecords();
     els.exportCsv.disabled = !filtered.length;
+    updateComboSummary(els.yearFilterButton, state.years, "Todos os anos");
+    updateComboSummary(els.monthFilterButton, state.months, "Todos os meses", monthName);
+    updateComboSummary(els.appFilterButton, state.apps, "Todos os sistemas", appName);
+    updateComboSummary(els.channelFilterButton, state.channels, "Todos os canais");
     renderKpis(filtered);
     renderYearChart(filtered);
     renderChannels(filtered);
@@ -432,6 +473,16 @@
     els.contrastToggle.addEventListener("click", () => {
       const isActive = document.body.classList.toggle("high-contrast");
       els.contrastToggle.setAttribute("aria-pressed", String(isActive));
+    });
+    els.yearFilterButton.addEventListener("click", () => toggleCombo(els.yearFilterButton, els.yearFilter));
+    els.monthFilterButton.addEventListener("click", () => toggleCombo(els.monthFilterButton, els.monthFilter));
+    els.appFilterButton.addEventListener("click", () => toggleCombo(els.appFilterButton, els.appFilter));
+    els.channelFilterButton.addEventListener("click", () => toggleCombo(els.channelFilterButton, els.channelFilter));
+    document.addEventListener("click", (event) => {
+      if (!event.target.closest(".check-filter")) closeAllCombos();
+    });
+    document.addEventListener("keydown", (event) => {
+      if (event.key === "Escape") closeAllCombos();
     });
     bindCheckboxGroup(els.yearFilter, state.years, syncMonthFilter);
     bindCheckboxGroup(els.monthFilter, state.months);

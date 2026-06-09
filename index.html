@@ -41,19 +41,23 @@
       <section class="filters-panel" aria-label="Filtros">
         <fieldset class="check-filter">
           <legend>Ano</legend>
-          <div id="yearFilter" class="check-options"></div>
+          <button id="yearFilterButton" class="combo-button" type="button" aria-expanded="false" aria-controls="yearFilter">Todos os anos</button>
+          <div id="yearFilter" class="check-options" hidden></div>
         </fieldset>
         <fieldset class="check-filter">
           <legend>Mes</legend>
-          <div id="monthFilter" class="check-options"></div>
+          <button id="monthFilterButton" class="combo-button" type="button" aria-expanded="false" aria-controls="monthFilter">Todos os meses</button>
+          <div id="monthFilter" class="check-options" hidden></div>
         </fieldset>
         <fieldset class="check-filter">
           <legend>Sistema</legend>
-          <div id="appFilter" class="check-options"></div>
+          <button id="appFilterButton" class="combo-button" type="button" aria-expanded="false" aria-controls="appFilter">Todos os sistemas</button>
+          <div id="appFilter" class="check-options" hidden></div>
         </fieldset>
         <fieldset class="check-filter">
           <legend>Canal</legend>
-          <div id="channelFilter" class="check-options"></div>
+          <button id="channelFilterButton" class="combo-button" type="button" aria-expanded="false" aria-controls="channelFilter">Todos os canais</button>
+          <div id="channelFilter" class="check-options" hidden></div>
         </fieldset>
         <label class="search-field">
           Buscar servico
