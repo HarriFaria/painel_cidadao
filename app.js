@@ -257,7 +257,7 @@
   }
 
   function renderRanking(list) {
-    const data = groupBy(list, (item) => item.service).slice(0, 15);
+    const data = groupBy(list, (item) => item.service).slice(0, 10);
     els.rankingCount.textContent = `Top ${data.length}`;
     if (!data.length) {
       els.serviceRanking.innerHTML = '<div class="empty-state">Nenhum dado encontrado</div>';
