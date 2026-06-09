@@ -256,6 +256,28 @@ input:focus {
   padding: 0 10px;
 }
 
+.export-button {
+  min-height: 34px;
+  white-space: nowrap;
+  border: 1px solid var(--green);
+  border-radius: 6px;
+  background: var(--green);
+  color: #fff;
+  cursor: pointer;
+  font-size: 0.78rem;
+  font-weight: 900;
+  padding: 0 12px;
+}
+
+.export-button:hover {
+  background: var(--green-deep);
+}
+
+.export-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.45;
+}
+
 .chart-area {
   min-height: 330px;
 }

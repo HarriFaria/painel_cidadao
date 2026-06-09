@@ -42,6 +42,7 @@
     serviceRanking: document.querySelector("#serviceRanking"),
     rankingCount: document.querySelector("#rankingCount"),
     annualLeaders: document.querySelector("#annualLeaders"),
+    exportCsv: document.querySelector("#exportCsv"),
     detailsTable: document.querySelector("#detailsTable"),
   };
 
@@ -323,6 +324,45 @@
     `).join("");
   }
 
+  function csvCell(value) {
+    const text = String(value ?? "");
+    return `"${text.replace(/"/g, '""')}"`;
+  }
+
+  function currentCsvFileName() {
+    const parts = ["painel_cidadao"];
+    if (state.year !== "all") parts.push(state.year);
+    if (state.month !== "all") parts.push(String(state.month).padStart(2, "0"));
+    if (state.app !== "all") parts.push(state.app);
+    if (state.channel !== "all") parts.push(normalizeText(state.channel).replace(/\s+/g, "-"));
+    return `${parts.join("_")}.csv`;
+  }
+
+  function exportCsv() {
+    const rows = [...filterRecords()].sort((a, b) => b.total - a.total);
+    if (!rows.length) return;
+
+    const header = ["Servico", "Sistema", "Ano", "Mes", "Canal", "Total"];
+    const body = rows.map((item) => [
+      item.service,
+      appName(item.app_name),
+      item.year,
+      monthName(item.month),
+      item.demand_channel,
+      item.total,
+    ].map(csvCell).join(";"));
+    const csv = `\uFEFF${[header.map(csvCell).join(";"), ...body].join("\r\n")}`;
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = currentCsvFileName();
+    document.body.append(link);
+    link.click();
+    link.remove();
+    URL.revokeObjectURL(url);
+  }
+
   function escapeHtml(value) {
     return String(value)
       .replace(/&/g, "&amp;")
@@ -334,6 +374,7 @@
 
   function render() {
     const filtered = filterRecords();
+    els.exportCsv.disabled = !filtered.length;
     renderKpis(filtered);
     renderYearChart(filtered);
     renderChannels(filtered);
@@ -378,6 +419,7 @@
       els.searchFilter.value = "";
       render();
     });
+    els.exportCsv.addEventListener("click", exportCsv);
   }
 
   function init() {
