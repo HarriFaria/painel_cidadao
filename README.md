@@ -1,6 +1,6 @@
 # Painel Cidadao
 
-Dashboard estatico dos servicos mais solicitados no Painel Cidadao, com base no arquivo `top_servicos_solicitados_atemaio2026.xlsx`.
+Dashboard estatico dos servicos mais solicitados no Painel Cidadao, com base no arquivo `servicos+ate_junho_ano_mes.xlsx`.
 
 ## Como acessar localmente
 
@@ -16,7 +16,7 @@ O projeto nao precisa de build. No Vercel, selecione este repositorio e mantenha
 
 ## Fonte dos dados
 
-- Arquivo: `top_servicos_solicitados_atemaio2026.xlsx`
-- Aba: `painel_cidadao_maio_2026`
+- Arquivo: `servicos+ate_junho_ano_mes.xlsx`
+- Aba: `painel_cidadao user_demands1`
 - Periodo: 2019 a 2026
-- Observacao: os dados possuem granularidade mensal; 2026 contem registros de janeiro a maio.
+- Observacao: os dados possuem granularidade mensal; 2026 contem registros de janeiro a junho.

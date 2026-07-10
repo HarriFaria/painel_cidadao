@@ -34,6 +34,8 @@
     serviceFilterButton: document.querySelector("#serviceFilterButton"),
     serviceFilter: document.querySelector("#serviceFilter"),
     resetFilters: document.querySelector("#resetFilters"),
+    activePeriod: document.querySelector("#activePeriod"),
+    activeFilterCount: document.querySelector("#activeFilterCount"),
     kpiTotal: document.querySelector("#kpiTotal"),
     kpiTopService: document.querySelector("#kpiTopService"),
     kpiTopServiceValue: document.querySelector("#kpiTopServiceValue"),
@@ -44,6 +46,8 @@
     yearChart: document.querySelector("#yearChart"),
     channelChart: document.querySelector("#channelChart"),
     appChart: document.querySelector("#appChart"),
+    periodHeatmapSubtitle: document.querySelector("#periodHeatmapSubtitle"),
+    periodHeatmap: document.querySelector("#periodHeatmap"),
     serviceRanking: document.querySelector("#serviceRanking"),
     rankingCount: document.querySelector("#rankingCount"),
     annualLeaders: document.querySelector("#annualLeaders"),
@@ -91,6 +95,22 @@
     return monthName(value).slice(0, 3);
   }
 
+  function periodKey(item) {
+    return `${item.year}-${String(item.month).padStart(2, "0")}`;
+  }
+
+  function periodLabel(year, month) {
+    return `${monthShortName(month)}/${year}`;
+  }
+
+  function selectedYears() {
+    return uniqueSorted("year").filter((year) => !state.years.size || state.years.has(String(year)));
+  }
+
+  function selectedMonths() {
+    return availableMonths().filter((month) => !state.months.size || state.months.has(String(month)));
+  }
+
   function normalizeText(value) {
     return String(value || "")
       .normalize("NFD")
@@ -122,6 +142,44 @@
     renderCheckboxGroup(els.monthFilter, months, state.months, monthName, "month", "Todos os meses");
     updateComboSummary(els.monthFilterButton, state.months, "Todos os meses", monthName);
     closeCombo(els.monthFilterButton, els.monthFilter);
+  }
+
+  function availablePeriods() {
+    const periods = new Map();
+    records.forEach((item) => {
+      const yearOk = !state.years.size || state.years.has(String(item.year));
+      const monthOk = !state.months.size || state.months.has(String(item.month));
+      if (yearOk && monthOk) {
+        periods.set(periodKey(item), { key: periodKey(item), year: item.year, month: item.month });
+      }
+    });
+    return [...periods.values()].sort((a, b) => a.year - b.year || a.month - b.month);
+  }
+
+  function selectedSummary(set, allLabel, labeler) {
+    if (!set.size) return allLabel;
+
+    const values = [...set].sort((a, b) => {
+      const numA = Number(a);
+      const numB = Number(b);
+      if (!Number.isNaN(numA) && !Number.isNaN(numB)) return numA - numB;
+      return String(a).localeCompare(String(b), "pt-BR");
+    });
+    const labels = values.map((value) => labeler ? labeler(value) : value);
+    return labels.length <= 3 ? labels.join(", ") : `${labels.length} selecionados`;
+  }
+
+  function renderFilterSummary(list) {
+    const period = `${selectedSummary(state.years, "Todos os anos")} | ${selectedSummary(state.months, "Todos os meses", monthName)}`;
+    const extraFilters = [
+      state.apps.size ? "sistema" : "",
+      state.channels.size ? "canal" : "",
+      state.services.size ? "servico" : "",
+    ].filter(Boolean);
+    const suffix = extraFilters.length ? ` com filtro de ${extraFilters.join(", ")}` : "";
+
+    els.activePeriod.textContent = period;
+    els.activeFilterCount.textContent = `${formatNumber(totalOf(list))} solicitacoes em ${formatNumber(list.length)} linhas agregadas${suffix}`;
   }
 
   function renderCheckboxGroup(container, options, selectedSet, labeler, name, allLabel) {
@@ -230,52 +288,108 @@
     els.kpiDigitalShare.textContent = formatPercent(total ? (digital / total) * 100 : 0);
   }
 
-  function renderYearChart(list) {
-    const showMonthly = state.years.size === 1;
-    const grouped = new Map(groupBy(list, (item) => showMonthly ? item.month : item.year));
-    const labels = showMonthly
-      ? availableMonths().filter((month) => !state.months.size || state.months.has(String(month)))
-      : uniqueSorted("year").filter((year) => !state.years.size || state.years.has(String(year)));
-    const values = labels.map((label) => grouped.get(label) || 0);
-    const max = Math.max(...values, 1);
-    const width = 860;
-    const height = 330;
-    const pad = { top: 24, right: 22, bottom: 42, left: 72 };
-    const innerW = width - pad.left - pad.right;
-    const innerH = height - pad.top - pad.bottom;
-    const xStep = labels.length > 1 ? innerW / (labels.length - 1) : innerW;
-    const points = labels.map((label, index) => {
-      const x = pad.left + (labels.length > 1 ? index * xStep : innerW / 2);
-      const y = pad.top + innerH - (values[index] / max) * innerH;
-      return { label, axisLabel: showMonthly ? monthShortName(label) : label, value: values[index], x, y };
-    });
+  function timelineMode() {
+    if (state.years.size === 1 || state.months.size || (state.years.size > 1 && state.years.size <= 2)) {
+      return "period";
+    }
+    return "year";
+  }
 
-    if (!points.length) {
+  function niceMax(value) {
+    if (!value) return 1;
+
+    const magnitude = 10 ** Math.floor(Math.log10(value));
+    const normalized = value / magnitude;
+    const nice = normalized <= 1 ? 1 : normalized <= 2 ? 2 : normalized <= 5 ? 5 : 10;
+    return nice * magnitude;
+  }
+
+  function renderYearChart(list) {
+    if (!list.length) {
+      els.timelineSubtitle.textContent = "Total de solicitacoes no periodo selecionado";
       els.yearChart.innerHTML = '<div class="empty-state">Nenhum dado encontrado</div>';
       return;
     }
 
+    const mode = timelineMode();
+    const grouped = new Map(groupBy(list, (item) => mode === "period" ? periodKey(item) : item.year));
+    const labels = mode === "period"
+      ? availablePeriods().map((period) => ({
+        key: period.key,
+        axisLabel: periodLabel(period.year, period.month),
+        title: `${monthName(period.month)} de ${period.year}`,
+      }))
+      : selectedYears().map((year) => ({
+        key: year,
+        axisLabel: year,
+        title: year,
+      }));
+    const values = labels.map((label) => grouped.get(label.key) || 0);
+    const maxRaw = Math.max(...values, 1);
+    const max = niceMax(maxRaw);
+    const width = 980;
+    const height = 360;
+    const pad = { top: 26, right: 28, bottom: mode === "period" && labels.length > 12 ? 72 : 48, left: 78 };
+    const innerW = width - pad.left - pad.right;
+    const innerH = height - pad.top - pad.bottom;
+    const baseline = pad.top + innerH;
+    const xStep = labels.length > 1 ? innerW / (labels.length - 1) : innerW;
+    const points = labels.map((label, index) => {
+      const x = pad.left + (labels.length > 1 ? index * xStep : innerW / 2);
+      const y = baseline - (values[index] / max) * innerH;
+      return { ...label, value: values[index], x, y };
+    });
+
     const line = points.map((point, index) => `${index ? "L" : "M"} ${point.x} ${point.y}`).join(" ");
-    const area = `${line} L ${points[points.length - 1].x} ${pad.top + innerH} L ${points[0].x} ${pad.top + innerH} Z`;
+    const area = `${line} L ${points[points.length - 1].x} ${baseline} L ${points[0].x} ${baseline} Z`;
+    const average = values.reduce((sum, value) => sum + value, 0) / values.length;
+    const averageY = baseline - (average / max) * innerH;
+    const labelStep = Math.max(1, Math.ceil(points.length / 14));
+    const pointRadius = points.length > 20 ? 4 : 6;
     const ticks = [0, 0.25, 0.5, 0.75, 1].map((tick) => {
-      const y = pad.top + innerH - tick * innerH;
+      const y = baseline - tick * innerH;
       const value = Math.round(max * tick);
-      return `<g><line x1="${pad.left}" y1="${y}" x2="${width - pad.right}" y2="${y}" stroke="#e6ece8"/><text x="${pad.left - 12}" y="${y + 4}" text-anchor="end" class="axis-label">${compact(value)}</text></g>`;
+      return `<g><line x1="${pad.left}" y1="${y}" x2="${width - pad.right}" y2="${y}" class="grid-line"/><text x="${pad.left - 12}" y="${y + 4}" text-anchor="end" class="axis-label">${compact(value)}</text></g>`;
     }).join("");
     const selectedYear = [...state.years][0];
-    els.timelineSubtitle.textContent = showMonthly ? `Total de solicitacoes por mes em ${selectedYear}` : "Total de solicitacoes por ano";
-    const yearLabels = points.map((point) => `<text x="${point.x}" y="${height - 12}" text-anchor="middle" class="axis-label">${point.axisLabel}</text>`).join("");
-    const circles = points.map((point) => `<g><circle class="point" cx="${point.x}" cy="${point.y}" r="6"/><title>${showMonthly ? monthName(point.label) : point.label}: ${formatNumber(point.value)}</title></g>`).join("");
-    const valueLabels = points.map((point) => `<text x="${point.x}" y="${Math.max(point.y - 14, 14)}" text-anchor="middle" class="axis-label">${compact(point.value)}</text>`).join("");
+    els.timelineSubtitle.textContent = mode === "period"
+      ? state.years.size === 1 ? `Total de solicitacoes por mes em ${selectedYear}` : "Total de solicitacoes por mes/ano"
+      : "Total de solicitacoes por ano";
+    const axisLabels = points.map((point, index) => {
+      const isVisible = index % labelStep === 0 || index === points.length - 1;
+      if (!isVisible) return "";
+
+      const rotate = mode === "period" && points.length > 12;
+      const transform = rotate ? ` transform="rotate(-36 ${point.x} ${height - 18})"` : "";
+      const anchor = rotate ? "end" : "middle";
+      return `<text x="${point.x}" y="${height - 18}" text-anchor="${anchor}" class="axis-label"${transform}>${escapeHtml(point.axisLabel)}</text>`;
+    }).join("");
+    const circles = points.map((point) => {
+      const topClass = point.value === maxRaw ? " is-top" : "";
+      return `<g><circle class="point${topClass}" cx="${point.x}" cy="${point.y}" r="${pointRadius}"/><title>${escapeHtml(point.title)}: ${formatNumber(point.value)}</title></g>`;
+    }).join("");
+    const valueLabels = points.map((point, index) => {
+      const shouldShow = points.length <= 12 || point.value === maxRaw || index === points.length - 1;
+      if (!shouldShow) return "";
+      return `<text x="${point.x}" y="${Math.max(point.y - 14, 14)}" text-anchor="middle" class="value-label">${compact(point.value)}</text>`;
+    }).join("");
 
     els.yearChart.innerHTML = `
       <svg viewBox="0 0 ${width} ${height}" preserveAspectRatio="none">
+        <defs>
+          <linearGradient id="timelineGradient" x1="0" x2="0" y1="0" y2="1">
+            <stop offset="0%" stop-color="rgba(0, 90, 169, 0.24)"></stop>
+            <stop offset="100%" stop-color="rgba(0, 90, 169, 0.02)"></stop>
+          </linearGradient>
+        </defs>
         ${ticks}
+        <line x1="${pad.left}" y1="${averageY}" x2="${width - pad.right}" y2="${averageY}" class="average-line"></line>
+        <text x="${width - pad.right}" y="${averageY - 7}" text-anchor="end" class="average-label">Media ${compact(average)}</text>
         <path class="area-path" d="${area}"></path>
         <path class="line-path" d="${line}"></path>
         ${circles}
         ${valueLabels}
-        ${yearLabels}
+        ${axisLabels}
       </svg>
     `;
   }
@@ -286,18 +400,20 @@
     return formatNumber(value);
   }
 
-  function renderBarList(container, data, colorClass) {
-    const max = Math.max(...data.map((item) => item[1]), 1);
+  function renderBarList(container, data, colorClass, limit) {
     if (!data.length) {
       container.innerHTML = '<div class="empty-state">Nenhum dado encontrado</div>';
       return;
     }
 
-    container.innerHTML = data.map(([name, value]) => `
+    const rows = limit ? data.slice(0, limit) : data;
+    const total = data.reduce((sum, item) => sum + item[1], 0);
+    const max = Math.max(...rows.map((item) => item[1]), 1);
+    container.innerHTML = rows.map(([name, value]) => `
       <div class="bar-row">
         <div class="row-head">
           <span class="row-name" title="${escapeHtml(name)}">${escapeHtml(name)}</span>
-          <span class="row-value">${formatNumber(value)}</span>
+          <span class="row-value">${formatNumber(value)} <small>${formatPercent(total ? (value / total) * 100 : 0)}</small></span>
         </div>
         <div class="bar-track">
           <div class="bar-fill ${colorClass || ""}" style="width: ${Math.max((value / max) * 100, 1)}%"></div>
@@ -312,7 +428,44 @@
 
   function renderApps(list) {
     const data = groupBy(list, (item) => item.app_name).map(([name, value]) => [appName(name), value]);
-    renderBarList(els.appChart, data, "amber");
+    renderBarList(els.appChart, data, "amber", 8);
+  }
+
+  function renderPeriodHeatmap(list) {
+    const years = selectedYears();
+    const months = selectedMonths();
+
+    if (!list.length || !years.length || !months.length) {
+      els.periodHeatmapSubtitle.textContent = "Intensidade de solicitacoes por periodo";
+      els.periodHeatmap.innerHTML = '<div class="empty-state">Nenhum dado encontrado</div>';
+      return;
+    }
+
+    const grouped = new Map(groupBy(list, (item) => periodKey(item)));
+    const max = Math.max(...years.flatMap((year) => months.map((month) => grouped.get(`${year}-${String(month).padStart(2, "0")}`) || 0)), 1);
+    const header = `
+      <div class="heatmap-row heatmap-head" style="--month-count: ${months.length}">
+        <span>Ano</span>
+        ${months.map((month) => `<span>${escapeHtml(monthShortName(month))}</span>`).join("")}
+      </div>
+    `;
+    const rows = years.map((year) => `
+      <div class="heatmap-row" style="--month-count: ${months.length}">
+        <strong>${year}</strong>
+        ${months.map((month) => {
+          const key = `${year}-${String(month).padStart(2, "0")}`;
+          const value = grouped.get(key) || 0;
+          const ratio = value / max;
+          const heat = `${Math.max(ratio * 76, value ? 12 : 0).toFixed(1)}%`;
+          const hotClass = ratio > 0.58 ? " is-hot" : "";
+          const title = `${monthName(month)} de ${year}: ${formatNumber(value)} solicitacoes`;
+          return `<span class="heatmap-cell${hotClass}" style="--heat: ${heat}" title="${escapeHtml(title)}">${value ? compact(value) : "-"}</span>`;
+        }).join("")}
+      </div>
+    `).join("");
+
+    els.periodHeatmapSubtitle.textContent = `${years.length} ano(s) x ${months.length} mes(es) no recorte selecionado`;
+    els.periodHeatmap.innerHTML = header + rows;
   }
 
   function renderRanking(list) {
@@ -323,6 +476,7 @@
       return;
     }
 
+    const total = totalOf(list);
     const max = Math.max(...data.map((item) => item[1]), 1);
     els.serviceRanking.innerHTML = data.map(([name, value], index) => `
       <div class="ranking-row">
@@ -330,7 +484,7 @@
         <div>
           <div class="row-head">
             <span class="row-name" title="${escapeHtml(name)}">${escapeHtml(name)}</span>
-            <span class="row-value">${formatNumber(value)}</span>
+            <span class="row-value">${formatNumber(value)} <small>${formatPercent(total ? (value / total) * 100 : 0)}</small></span>
           </div>
           <div class="bar-track">
             <div class="bar-fill" style="width: ${Math.max((value / max) * 100, 1)}%"></div>
@@ -440,10 +594,12 @@
     updateComboSummary(els.appFilterButton, state.apps, "Todos os sistemas", appName);
     updateComboSummary(els.channelFilterButton, state.channels, "Todos os canais");
     updateComboSummary(els.serviceFilterButton, state.services, "Todos os servicos");
+    renderFilterSummary(filtered);
     renderKpis(filtered);
     renderYearChart(filtered);
     renderChannels(filtered);
     renderApps(filtered);
+    renderPeriodHeatmap(filtered);
     renderRanking(filtered);
     renderAnnualLeaders(filtered);
     renderTable(filtered);
