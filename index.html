@@ -38,6 +38,11 @@
     </header>
 
     <main id="conteudo">
+      <nav class="section-tabs" aria-label="Seções do Painel Cidadão" role="tablist">
+        <button id="dashboardTab" class="section-tab is-active" type="button" role="tab" aria-selected="true" aria-controls="dashboardView">Visão geral</button>
+        <button id="reportTab" class="section-tab" type="button" role="tab" aria-selected="false" aria-controls="reportView">Relatório</button>
+      </nav>
+
       <section class="filters-panel" aria-label="Filtros">
         <fieldset class="check-filter">
           <legend>Ano</legend>
@@ -72,23 +77,36 @@
         </div>
       </section>
 
+      <div id="dashboardView" class="app-view" role="tabpanel" aria-labelledby="dashboardTab">
       <section class="kpi-grid" aria-label="Indicadores principais">
         <article class="kpi-card">
-          <span>Total de solicitacoes</span>
+          <div class="kpi-heading">
+            <span>Total de solicitacoes</span>
+            <button class="info-button" type="button" aria-label="Total de solicitacoes: soma de todas as solicitacoes no recorte definido pelos filtros ativos." data-tooltip="Soma de todas as solicitacoes no recorte definido pelos filtros ativos."></button>
+          </div>
           <strong id="kpiTotal">0</strong>
         </article>
         <article class="kpi-card">
-          <span>Servico lider</span>
+          <div class="kpi-heading">
+            <span>Servico lider</span>
+            <button class="info-button" type="button" aria-label="Servico lider: servico com o maior numero de solicitacoes no recorte filtrado." data-tooltip="Servico com o maior numero de solicitacoes no recorte filtrado. O valor abaixo indica seu total de solicitacoes."></button>
+          </div>
           <strong id="kpiTopService">-</strong>
           <small id="kpiTopServiceValue">0 solicitacoes</small>
         </article>
         <article class="kpi-card">
-          <span>Sistema lider</span>
+          <div class="kpi-heading">
+            <span>Sistema lider</span>
+            <button class="info-button" type="button" aria-label="Sistema lider: sistema com o maior numero de solicitacoes no recorte filtrado." data-tooltip="Sistema com o maior numero de solicitacoes no recorte filtrado. O valor abaixo indica seu total de solicitacoes."></button>
+          </div>
           <strong id="kpiTopApp">-</strong>
           <small id="kpiTopAppValue">0 solicitacoes</small>
         </article>
         <article class="kpi-card">
-          <span>Participacao digital</span>
+          <div class="kpi-heading">
+            <span>Participacao digital</span>
+            <button class="info-button" type="button" aria-label="Participacao digital: percentual das solicitacoes feitas pelos canais Digital e App sobre o total filtrado." data-tooltip="Percentual das solicitacoes feitas pelos canais Digital e App sobre o total do recorte filtrado."></button>
+          </div>
           <strong id="kpiDigitalShare">0%</strong>
           <small>Digital + App</small>
         </article>
@@ -190,6 +208,159 @@
               <tbody id="detailsTable"></tbody>
             </table>
           </div>
+        </article>
+      </section>
+      </div>
+
+      <section id="reportView" class="app-view report-view" role="tabpanel" aria-labelledby="reportTab" hidden>
+        <article class="report-sheet">
+          <header class="report-header">
+            <div class="report-title-block">
+              <p class="report-kicker">Painel Cidadão · Síntese executiva</p>
+              <h2>Relatório Gerencial — Serviços ao Cidadão</h2>
+              <div class="report-meta">
+                <span><strong>Período:</strong> <span id="reportPeriodLabel">Acumulado 2019–jun/2026</span></span>
+                <span><strong>Gerado em:</strong> <time id="reportGeneratedAt"></time></span>
+              </div>
+            </div>
+            <div class="report-seal" aria-label="Governo de Mato Grosso e MTI">
+              <span>Governo de</span>
+              <strong>Mato Grosso</strong>
+              <small>MTI</small>
+            </div>
+          </header>
+
+          <div class="report-toolbar no-print" aria-label="Opções do relatório">
+            <div class="period-shortcuts">
+              <span>Período rápido</span>
+              <button id="reportAccumulated" class="period-button is-active" type="button">Acumulado 2019–jun/2026</button>
+              <button id="reportCurrentYear" class="period-button" type="button">Ano corrente</button>
+            </div>
+            <button id="printReport" class="print-button" type="button">
+              <span aria-hidden="true">⇩</span> Exportar PDF / imprimir
+            </button>
+          </div>
+
+          <section class="report-block executive-summary" aria-labelledby="summaryTitle">
+            <div class="report-section-heading">
+              <span class="section-number">01</span>
+              <div>
+                <h3 id="summaryTitle">Sumário executivo</h3>
+                <p>Leitura rápida do recorte selecionado</p>
+              </div>
+            </div>
+            <p id="reportSummary" class="summary-text">Calculando síntese do período...</p>
+          </section>
+
+          <section class="report-kpi-grid" aria-label="Indicadores-chave do relatório">
+            <article class="report-kpi-card">
+              <span>Total de solicitações</span>
+              <strong id="reportTotal">0</strong>
+              <small id="reportTotalChange" class="change-badge is-neutral">Sem comparação</small>
+            </article>
+            <article class="report-kpi-card">
+              <span>Participação digital</span>
+              <strong id="reportDigital">0%</strong>
+              <small id="reportDigitalChange" class="change-badge is-neutral">Digital + App</small>
+            </article>
+            <article class="report-kpi-card report-kpi-text">
+              <span>Serviço mais demandado</span>
+              <strong id="reportTopService">—</strong>
+              <small id="reportTopServiceMeta">0 · 0% do total</small>
+            </article>
+            <article class="report-kpi-card report-kpi-text">
+              <span>Sistema líder</span>
+              <strong id="reportTopSystem">—</strong>
+              <small id="reportTopSystemMeta">0 · 0% do total</small>
+            </article>
+            <article class="report-kpi-card">
+              <span>Canal em maior crescimento</span>
+              <strong id="reportGrowthChannel">—</strong>
+              <small id="reportGrowthChannelMeta">Sem base comparável</small>
+            </article>
+            <article class="report-kpi-card">
+              <span>Ecossistema ativo</span>
+              <strong id="reportActiveSystems">0</strong>
+              <small id="reportActiveSystemsMeta">sistemas · 0 canais</small>
+            </article>
+          </section>
+
+          <section class="report-block report-page-section" aria-labelledby="evolutionTitle">
+            <div class="report-section-heading">
+              <span class="section-number">02</span>
+              <div>
+                <h3 id="evolutionTitle">Evolução temporal</h3>
+                <p id="reportTimelineSubtitle">Total de solicitações por ano</p>
+              </div>
+            </div>
+            <div id="reportTimelineChart" class="executive-chart" role="img" aria-label="Evolução de solicitações no período"></div>
+            <p id="reportTimelineNote" class="insight-note"></p>
+          </section>
+
+          <div class="report-two-columns report-page-section">
+            <section class="report-block" aria-labelledby="channelsTitle">
+              <div class="report-section-heading">
+                <span class="section-number">03</span>
+                <div>
+                  <h3 id="channelsTitle">Canais de atendimento</h3>
+                  <p>Transformação digital</p>
+                </div>
+              </div>
+              <div id="reportChannelChart" class="composition-chart" role="img" aria-label="Composição por canal de atendimento"></div>
+              <p id="reportChannelInsight" class="insight-note"></p>
+            </section>
+
+            <section class="report-block" aria-labelledby="systemsTitle">
+              <div class="report-section-heading">
+                <span class="section-number">04</span>
+                <div>
+                  <h3 id="systemsTitle">Sistemas em destaque</h3>
+                  <p>Três maiores volumes do período</p>
+                </div>
+              </div>
+              <div id="reportSystemsChart" class="executive-ranking"></div>
+              <p id="reportSystemsInsight" class="insight-note"></p>
+            </section>
+          </div>
+
+          <section class="report-block report-page-section" aria-labelledby="rankingTitle">
+            <div class="report-section-heading">
+              <span class="section-number">05</span>
+              <div>
+                <h3 id="rankingTitle">Ranking de serviços</h3>
+                <p>Top 5 do recorte selecionado</p>
+              </div>
+            </div>
+            <div class="report-table-wrap">
+              <table class="report-table">
+                <thead>
+                  <tr>
+                    <th>Serviço</th>
+                    <th>Sistema</th>
+                    <th>Total</th>
+                    <th>% do total</th>
+                  </tr>
+                </thead>
+                <tbody id="reportServicesTable"></tbody>
+              </table>
+            </div>
+          </section>
+
+          <section class="report-block report-attention report-page-section" aria-labelledby="attentionTitle">
+            <div class="report-section-heading">
+              <span class="section-number">06</span>
+              <div>
+                <h3 id="attentionTitle">Considerações finais</h3>
+                <p>Pontos de atenção gerados a partir do recorte</p>
+              </div>
+            </div>
+            <ul id="reportAttentionList"></ul>
+          </section>
+
+          <footer class="report-footer">
+            <span>Fonte dos dados: <strong>servicos+ate_junho_ano_mes.xlsx</strong></span>
+            <span>MTI — Empresa Mato-grossense de Tecnologia da Informação</span>
+          </footer>
         </article>
       </section>
     </main>

@@ -23,6 +23,10 @@
 
   const els = {
     contrastToggle: document.querySelector("#contrastToggle"),
+    dashboardTab: document.querySelector("#dashboardTab"),
+    reportTab: document.querySelector("#reportTab"),
+    dashboardView: document.querySelector("#dashboardView"),
+    reportView: document.querySelector("#reportView"),
     yearFilterButton: document.querySelector("#yearFilterButton"),
     yearFilter: document.querySelector("#yearFilter"),
     monthFilterButton: document.querySelector("#monthFilterButton"),
@@ -53,6 +57,33 @@
     annualLeaders: document.querySelector("#annualLeaders"),
     exportCsv: document.querySelector("#exportCsv"),
     detailsTable: document.querySelector("#detailsTable"),
+    reportPeriodLabel: document.querySelector("#reportPeriodLabel"),
+    reportGeneratedAt: document.querySelector("#reportGeneratedAt"),
+    reportAccumulated: document.querySelector("#reportAccumulated"),
+    reportCurrentYear: document.querySelector("#reportCurrentYear"),
+    printReport: document.querySelector("#printReport"),
+    reportSummary: document.querySelector("#reportSummary"),
+    reportTotal: document.querySelector("#reportTotal"),
+    reportTotalChange: document.querySelector("#reportTotalChange"),
+    reportDigital: document.querySelector("#reportDigital"),
+    reportDigitalChange: document.querySelector("#reportDigitalChange"),
+    reportTopService: document.querySelector("#reportTopService"),
+    reportTopServiceMeta: document.querySelector("#reportTopServiceMeta"),
+    reportTopSystem: document.querySelector("#reportTopSystem"),
+    reportTopSystemMeta: document.querySelector("#reportTopSystemMeta"),
+    reportGrowthChannel: document.querySelector("#reportGrowthChannel"),
+    reportGrowthChannelMeta: document.querySelector("#reportGrowthChannelMeta"),
+    reportActiveSystems: document.querySelector("#reportActiveSystems"),
+    reportActiveSystemsMeta: document.querySelector("#reportActiveSystemsMeta"),
+    reportTimelineSubtitle: document.querySelector("#reportTimelineSubtitle"),
+    reportTimelineChart: document.querySelector("#reportTimelineChart"),
+    reportTimelineNote: document.querySelector("#reportTimelineNote"),
+    reportChannelChart: document.querySelector("#reportChannelChart"),
+    reportChannelInsight: document.querySelector("#reportChannelInsight"),
+    reportSystemsChart: document.querySelector("#reportSystemsChart"),
+    reportSystemsInsight: document.querySelector("#reportSystemsInsight"),
+    reportServicesTable: document.querySelector("#reportServicesTable"),
+    reportAttentionList: document.querySelector("#reportAttentionList"),
   };
 
   const numberFmt = new Intl.NumberFormat("pt-BR");
@@ -366,7 +397,7 @@
     }).join("");
     const circles = points.map((point) => {
       const topClass = point.value === maxRaw ? " is-top" : "";
-      return `<g><circle class="point${topClass}" cx="${point.x}" cy="${point.y}" r="${pointRadius}"/><title>${escapeHtml(point.title)}: ${formatNumber(point.value)}</title></g>`;
+      return `<g><circle class="point${topClass}" cx="${point.x}" cy="${point.y}" r="${pointRadius}"/><title>${escapeHtml(point.title)}: ${formatNumber(point.value)} solicitacoes</title></g>`;
     }).join("");
     const valueLabels = points.map((point, index) => {
       const shouldShow = points.length <= 12 || point.value === maxRaw || index === points.length - 1;
@@ -410,7 +441,7 @@
     const total = data.reduce((sum, item) => sum + item[1], 0);
     const max = Math.max(...rows.map((item) => item[1]), 1);
     container.innerHTML = rows.map(([name, value]) => `
-      <div class="bar-row">
+      <div class="bar-row" title="${escapeHtml(name)}: ${formatNumber(value)} solicitacoes (${formatPercent(total ? (value / total) * 100 : 0)} do total)">
         <div class="row-head">
           <span class="row-name" title="${escapeHtml(name)}">${escapeHtml(name)}</span>
           <span class="row-value">${formatNumber(value)} <small>${formatPercent(total ? (value / total) * 100 : 0)}</small></span>
@@ -479,7 +510,7 @@
     const total = totalOf(list);
     const max = Math.max(...data.map((item) => item[1]), 1);
     els.serviceRanking.innerHTML = data.map(([name, value], index) => `
-      <div class="ranking-row">
+      <div class="ranking-row" title="${escapeHtml(name)}: ${formatNumber(value)} solicitacoes (${formatPercent(total ? (value / total) * 100 : 0)} do total)">
         <span class="rank-number">${index + 1}</span>
         <div>
           <div class="row-head">
@@ -508,7 +539,7 @@
     }
 
     els.annualLeaders.innerHTML = rows.map((item) => `
-      <div class="leader-row">
+      <div class="leader-row" title="${escapeHtml(item.name)} liderou em ${item.year}, com ${formatNumber(item.value)} solicitacoes">
         <span class="leader-year">${item.year}</span>
         <div class="leader-meta">
           <strong>${escapeHtml(item.name)}</strong>
@@ -586,6 +617,351 @@
       .replace(/'/g, "&#039;");
   }
 
+  function matchesDimensionFilters(item) {
+    return (!state.apps.size || state.apps.has(item.app_name))
+      && (!state.channels.size || state.channels.has(item.demand_channel))
+      && (!state.services.size || state.services.has(item.service));
+  }
+
+  function digitalShare(list) {
+    const total = totalOf(list);
+    if (!total) return 0;
+    const digitalTotal = list
+      .filter((item) => item.demand_channel === "Digital" || item.demand_channel === "App")
+      .reduce((sum, item) => sum + item.total, 0);
+    return (digitalTotal / total) * 100;
+  }
+
+  function monthRangeLabel(months) {
+    if (!months.length) return "";
+    if (months.length === 1) return monthShortName(months[0]).toLowerCase();
+    const sorted = [...months].sort((a, b) => a - b);
+    return `${monthShortName(sorted[0]).toLowerCase()}–${monthShortName(sorted[sorted.length - 1]).toLowerCase()}`;
+  }
+
+  function reportPeriodText() {
+    const years = [...state.years].map(Number).sort((a, b) => a - b);
+    const months = [...state.months].map(Number).sort((a, b) => a - b);
+    const allYears = uniqueSorted("year");
+    const firstYear = allYears[0];
+    const lastYear = allYears[allYears.length - 1];
+    const lastMonths = [...new Set(records.filter((item) => item.year === lastYear).map((item) => item.month))].sort((a, b) => a - b);
+
+    if (!years.length && !months.length) {
+      return `Acumulado ${firstYear}–${monthShortName(lastMonths[lastMonths.length - 1]).toLowerCase()}/${lastYear}`;
+    }
+    if (years.length === 1 && !months.length) {
+      const yearMonths = [...new Set(records.filter((item) => item.year === years[0]).map((item) => item.month))].sort((a, b) => a - b);
+      return yearMonths.length < 12
+        ? `${years[0]} · ${monthRangeLabel(yearMonths)}`
+        : `Ano ${years[0]}`;
+    }
+    const yearText = years.length ? (years.length === 1 ? String(years[0]) : `${years[0]}–${years[years.length - 1]}`) : `${firstYear}–${lastYear}`;
+    return `${monthRangeLabel(months) || "todos os meses"}/${yearText}`;
+  }
+
+  function comparisonContext() {
+    const dimensionRecords = records.filter(matchesDimensionFilters);
+    const selectedYearValues = [...state.years].map(Number).sort((a, b) => a - b);
+    const selectedMonthValues = [...state.months].map(Number).sort((a, b) => a - b);
+    const allYears = uniqueSorted("year");
+    let currentYear;
+    let previousYear;
+    let currentMonths;
+    let previousMonths;
+    let label;
+
+    if (selectedYearValues.length === 1 && selectedMonthValues.length === 1) {
+      currentYear = selectedYearValues[0];
+      currentMonths = selectedMonthValues;
+      const currentMonth = selectedMonthValues[0];
+      previousYear = currentMonth === 1 ? currentYear - 1 : currentYear;
+      previousMonths = [currentMonth === 1 ? 12 : currentMonth - 1];
+      label = `vs. ${monthShortName(previousMonths[0]).toLowerCase()}/${previousYear}`;
+    } else {
+      currentYear = selectedYearValues.length === 1
+        ? selectedYearValues[0]
+        : (selectedYearValues[selectedYearValues.length - 1] || allYears[allYears.length - 1]);
+      previousYear = currentYear - 1;
+      currentMonths = selectedMonthValues.length
+        ? selectedMonthValues
+        : [...new Set(records.filter((item) => item.year === currentYear).map((item) => item.month))].sort((a, b) => a - b);
+      previousMonths = currentMonths;
+      const range = monthRangeLabel(currentMonths);
+      label = selectedYearValues.length === 1
+        ? `vs. ${previousYear}${currentMonths.length < 12 ? ` · ${range}` : ""}`
+        : `${currentYear} vs. ${previousYear} · ${range}`;
+    }
+
+    const currentList = dimensionRecords.filter((item) => item.year === currentYear && currentMonths.includes(item.month));
+    const previousList = dimensionRecords.filter((item) => item.year === previousYear && previousMonths.includes(item.month));
+    const currentTotal = totalOf(currentList);
+    const previousTotal = totalOf(previousList);
+    return {
+      currentList,
+      previousList,
+      currentTotal,
+      previousTotal,
+      label,
+      hasComparison: previousTotal > 0 && currentTotal > 0,
+    };
+  }
+
+  function percentChange(current, previous) {
+    return previous ? ((current - previous) / previous) * 100 : null;
+  }
+
+  function changeSentence(value) {
+    if (value === null || !Number.isFinite(value)) return "sem base comparável";
+    if (Math.abs(value) < 0.05) return "estabilidade";
+    return `${value > 0 ? "alta" : "queda"} de ${formatPercent(Math.abs(value))}`;
+  }
+
+  function setChangeBadge(element, value, suffix) {
+    element.classList.remove("is-positive", "is-negative", "is-neutral");
+    if (value === null || !Number.isFinite(value)) {
+      element.classList.add("is-neutral");
+      element.textContent = "Sem base comparável";
+      return;
+    }
+    const direction = value > 0.05 ? "is-positive" : value < -0.05 ? "is-negative" : "is-neutral";
+    element.classList.add(direction);
+    const arrow = value > 0.05 ? "↑" : value < -0.05 ? "↓" : "→";
+    element.textContent = `${arrow} ${formatPercent(Math.abs(value))} ${suffix}`;
+  }
+
+  function setPointChangeBadge(element, value, suffix) {
+    element.classList.remove("is-positive", "is-negative", "is-neutral");
+    if (value === null || !Number.isFinite(value)) {
+      element.classList.add("is-neutral");
+      element.textContent = "Sem base comparável";
+      return;
+    }
+    const direction = value > 0.05 ? "is-positive" : value < -0.05 ? "is-negative" : "is-neutral";
+    element.classList.add(direction);
+    const arrow = value > 0.05 ? "↑" : value < -0.05 ? "↓" : "→";
+    element.textContent = `${arrow} ${percentFmt.format(Math.abs(value))} p.p. ${suffix}`;
+  }
+
+  function relativeGrowthLeader(currentList, previousList, keyFn) {
+    const current = new Map(groupBy(currentList, keyFn));
+    const previous = new Map(groupBy(previousList, keyFn));
+    return [...current.entries()]
+      .filter(([name, value]) => previous.has(name) && previous.get(name) > 0 && value > 0)
+      .map(([name, value]) => ({
+        name,
+        value,
+        growth: percentChange(value, previous.get(name)),
+      }))
+      .sort((a, b) => b.growth - a.growth)[0] || null;
+  }
+
+  function renderReportKpis(list, comparison) {
+    const total = totalOf(list);
+    const serviceTop = groupBy(list, (item) => item.service)[0] || ["—", 0];
+    const systemTop = groupBy(list, (item) => item.app_name)[0] || ["—", 0];
+    const currentDigital = digitalShare(list);
+    const comparableDigital = digitalShare(comparison.currentList);
+    const previousDigital = digitalShare(comparison.previousList);
+    const totalChange = comparison.hasComparison
+      ? percentChange(comparison.currentTotal, comparison.previousTotal)
+      : null;
+    const digitalChange = comparison.previousTotal
+      ? comparableDigital - previousDigital
+      : null;
+    const channelGrowth = relativeGrowthLeader(
+      comparison.currentList,
+      comparison.previousList,
+      (item) => item.demand_channel,
+    );
+    const systems = new Set(list.map((item) => item.app_name));
+    const channels = new Set(list.map((item) => item.demand_channel));
+
+    els.reportTotal.textContent = formatNumber(total);
+    setChangeBadge(els.reportTotalChange, totalChange, comparison.label);
+    els.reportDigital.textContent = formatPercent(currentDigital);
+    setPointChangeBadge(els.reportDigitalChange, digitalChange, comparison.label);
+    els.reportTopService.textContent = truncate(serviceTop[0], 64);
+    els.reportTopService.title = serviceTop[0];
+    els.reportTopServiceMeta.textContent = `${formatNumber(serviceTop[1])} · ${formatPercent(total ? (serviceTop[1] / total) * 100 : 0)} do total`;
+    els.reportTopSystem.textContent = appName(systemTop[0]);
+    els.reportTopSystemMeta.textContent = `${formatNumber(systemTop[1])} · ${formatPercent(total ? (systemTop[1] / total) * 100 : 0)} do total`;
+    els.reportGrowthChannel.textContent = channelGrowth ? channelGrowth.name : "—";
+    els.reportGrowthChannelMeta.textContent = channelGrowth
+      ? `${channelGrowth.growth >= 0 ? "+" : ""}${formatPercent(channelGrowth.growth)} ${comparison.label}`
+      : "Sem base comparável";
+    els.reportActiveSystems.textContent = formatNumber(systems.size);
+    els.reportActiveSystemsMeta.textContent = `sistemas · ${formatNumber(channels.size)} canais`;
+
+    const comparisonQualifier = state.years.size > 1 || !state.years.size
+      ? ` Na janela comparável (${comparison.label}), houve ${changeSentence(totalChange)}.`
+      : ` O volume representa ${changeSentence(totalChange)} ${comparison.label}.`;
+    const digitalDirection = digitalChange === null || Math.abs(digitalChange) < 0.05
+      ? "permaneceu estável"
+      : `${digitalChange > 0 ? "subiu" : "caiu"} ${percentFmt.format(Math.abs(digitalChange))} pontos percentuais na janela comparável`;
+    els.reportSummary.textContent = total
+      ? `O período reúne ${formatNumber(total)} solicitações.${comparisonQualifier} O serviço líder foi “${serviceTop[0]}”, e ${appName(systemTop[0])} concentrou o maior volume entre os sistemas. Os canais Digital e App responderam por ${formatPercent(currentDigital)} dos atendimentos; essa participação ${digitalDirection} em relação ao período anterior.`
+      : "Não há solicitações para o recorte selecionado. Ajuste os filtros globais para gerar a síntese executiva.";
+  }
+
+  function renderReportTimeline(list) {
+    const monthly = state.years.size === 1;
+    const grouped = groupBy(list, (item) => monthly ? item.month : item.year)
+      .sort((a, b) => Number(a[0]) - Number(b[0]));
+
+    if (!grouped.length) {
+      els.reportTimelineChart.innerHTML = '<div class="empty-state">Nenhum dado encontrado</div>';
+      els.reportTimelineNote.textContent = "Sem série temporal para o recorte selecionado.";
+      return;
+    }
+
+    const max = Math.max(...grouped.map((item) => item[1]), 1);
+    els.reportTimelineSubtitle.textContent = monthly ? "Total de solicitações por mês" : "Total de solicitações por ano";
+    els.reportTimelineChart.innerHTML = `<div class="executive-bars" style="--bar-count: ${grouped.length}">${grouped.map(([key, value]) => `
+      <div class="executive-bar-item" title="${escapeHtml(monthly ? monthName(key) : key)}: ${formatNumber(value)} solicitações">
+        <span class="executive-bar-value">${compact(value)}</span>
+        <div class="executive-bar-column"><span style="height: ${Math.max((value / max) * 100, 2)}%"></span></div>
+        <span class="executive-bar-label">${escapeHtml(monthly ? monthShortName(key) : key)}</span>
+      </div>
+    `).join("")}</div>`;
+
+    let growthData = grouped;
+    let partialNote = "";
+    if (!monthly && grouped.length > 2) {
+      const lastYear = Number(grouped[grouped.length - 1][0]);
+      const monthCounts = grouped.map(([year]) => new Set(records.filter((item) => item.year === Number(year)).map((item) => item.month)).size);
+      const fullCount = Math.max(...monthCounts);
+      if (monthCounts[monthCounts.length - 1] < fullCount) {
+        growthData = grouped.slice(0, -1);
+        partialNote = `${lastYear} é um ano parcial e não entra no cálculo da média. `;
+      }
+    }
+    const growthRates = growthData.slice(1).map((item, index) => percentChange(item[1], growthData[index][1])).filter(Number.isFinite);
+    if (growthRates.length) {
+      const averageGrowth = growthRates.reduce((sum, value) => sum + value, 0) / growthRates.length;
+      els.reportTimelineNote.textContent = `${partialNote}${averageGrowth >= 0 ? "Crescimento médio" : "Redução média"} de ${formatPercent(Math.abs(averageGrowth))} por ${monthly ? "mês" : "ano"} na série comparável.`;
+    } else {
+      els.reportTimelineNote.textContent = `${partialNote}O recorte ainda não possui períodos suficientes para calcular uma tendência.`;
+    }
+  }
+
+  function channelClass(name) {
+    const normalized = normalizeText(name);
+    if (normalized === "digital") return "is-digital";
+    if (normalized === "app") return "is-app";
+    if (normalized === "presencial") return "is-presential";
+    return "is-other";
+  }
+
+  function renderReportChannels(list, comparison) {
+    const channels = groupBy(list, (item) => item.demand_channel);
+    const total = totalOf(list);
+    const digital = digitalShare(list);
+    const comparableDigital = digitalShare(comparison.currentList);
+    const previousDigital = digitalShare(comparison.previousList);
+    if (!channels.length) {
+      els.reportChannelChart.innerHTML = '<div class="empty-state">Nenhum dado encontrado</div>';
+      els.reportChannelInsight.textContent = "Sem composição de canais para o recorte.";
+      return;
+    }
+    els.reportChannelChart.innerHTML = `
+      <div class="composition-track">${channels.map(([name, value]) => `<span class="${channelClass(name)}" style="width: ${(value / total) * 100}%" title="${escapeHtml(name)}: ${formatPercent((value / total) * 100)}"></span>`).join("")}</div>
+      <div class="composition-legend">${channels.map(([name, value]) => `
+        <div><span class="legend-swatch ${channelClass(name)}"></span><span>${escapeHtml(name)}</span><strong>${formatPercent((value / total) * 100)}</strong></div>
+      `).join("")}</div>`;
+    els.reportChannelInsight.textContent = comparison.previousTotal
+      ? `${formatPercent(digital)} dos atendimentos do recorte ocorrem por canais digitais; na janela comparável, são ${formatPercent(comparableDigital)}, ante ${formatPercent(previousDigital)} no período anterior.`
+      : `${formatPercent(digital)} dos atendimentos já ocorrem por canais digitais.`;
+  }
+
+  function renderReportSystems(list, comparison) {
+    const systems = groupBy(list, (item) => item.app_name).slice(0, 3);
+    const total = totalOf(list);
+    const max = Math.max(...systems.map((item) => item[1]), 1);
+    if (!systems.length) {
+      els.reportSystemsChart.innerHTML = '<div class="empty-state">Nenhum dado encontrado</div>';
+      els.reportSystemsInsight.textContent = "Sem sistemas ativos no recorte.";
+      return;
+    }
+    els.reportSystemsChart.innerHTML = systems.map(([name, value], index) => `
+      <div class="executive-rank-row">
+        <span class="executive-rank-number">${index + 1}</span>
+        <div>
+          <div class="row-head"><span class="row-name">${escapeHtml(appName(name))}</span><span class="row-value">${formatNumber(value)} · ${formatPercent((value / total) * 100)}</span></div>
+          <div class="bar-track"><div class="bar-fill" style="width: ${Math.max((value / max) * 100, 1)}%"></div></div>
+        </div>
+      </div>
+    `).join("");
+    const growthLeader = relativeGrowthLeader(comparison.currentList, comparison.previousList, (item) => item.app_name);
+    els.reportSystemsInsight.textContent = growthLeader
+      ? `${appName(growthLeader.name)} apresentou o maior crescimento relativo entre os sistemas: ${growthLeader.growth >= 0 ? "+" : ""}${formatPercent(growthLeader.growth)} ${comparison.label}.`
+      : "Não há base comparável suficiente para apontar crescimento relativo por sistema.";
+  }
+
+  function renderReportServices(list) {
+    const total = totalOf(list);
+    const services = groupBy(list, (item) => item.service).slice(0, 5);
+    if (!services.length) {
+      els.reportServicesTable.innerHTML = '<tr><td colspan="4" class="empty-state">Nenhum dado encontrado</td></tr>';
+      return;
+    }
+    els.reportServicesTable.innerHTML = services.map(([service, value]) => {
+      const system = groupBy(list.filter((item) => item.service === service), (item) => item.app_name)[0] || ["—", 0];
+      return `<tr>
+        <td>${escapeHtml(service)}</td>
+        <td>${escapeHtml(appName(system[0]))}</td>
+        <td>${formatNumber(value)}</td>
+        <td>${formatPercent(total ? (value / total) * 100 : 0)}</td>
+      </tr>`;
+    }).join("");
+  }
+
+  function renderReportAttention(list, comparison) {
+    const total = totalOf(list);
+    if (!total) {
+      els.reportAttentionList.innerHTML = "<li>Não há dados suficientes para gerar pontos de atenção neste recorte.</li>";
+      return;
+    }
+    const serviceTop = groupBy(list, (item) => item.service)[0];
+    const serviceShare = (serviceTop[1] / total) * 100;
+    const currentDigital = digitalShare(list);
+    const historical = records.filter(matchesDimensionFilters);
+    const historicalDigital = digitalShare(historical);
+    const unidentifiedTotal = list
+      .filter((item) => normalizeText(item.demand_channel) === "nao identificado")
+      .reduce((sum, item) => sum + item.total, 0);
+    const unidentifiedShare = (unidentifiedTotal / total) * 100;
+    const notes = [];
+    notes.push(serviceShare >= 20
+      ? `O serviço “${serviceTop[0]}” representa ${formatPercent(serviceShare)} da demanda, concentração que merece avaliação de capacidade e oportunidade de automação.`
+      : `A demanda está relativamente distribuída: o serviço líder representa ${formatPercent(serviceShare)} do volume total.`);
+    if (unidentifiedShare >= 5) {
+      notes.push(`${formatPercent(unidentifiedShare)} das solicitações não têm canal identificado, ponto relevante para a qualidade do acompanhamento gerencial.`);
+    } else if (Math.abs(currentDigital - historicalDigital) >= 1) {
+      notes.push(`A participação digital está ${currentDigital > historicalDigital ? "acima" : "abaixo"} da média histórica do recorte (${formatPercent(historicalDigital)}).`);
+    } else if (comparison.hasComparison) {
+      const change = percentChange(comparison.currentTotal, comparison.previousTotal);
+      notes.push(`O volume do último período comparável indica ${changeSentence(change)}, sinal a acompanhar nos próximos ciclos.`);
+    }
+    els.reportAttentionList.innerHTML = notes.slice(0, 2).map((note) => `<li>${escapeHtml(note)}</li>`).join("");
+  }
+
+  function renderReport(list) {
+    const comparison = comparisonContext();
+    els.reportPeriodLabel.textContent = reportPeriodText();
+    els.reportGeneratedAt.textContent = new Intl.DateTimeFormat("pt-BR", { dateStyle: "long" }).format(new Date());
+    els.reportAccumulated.classList.toggle("is-active", !state.years.size && !state.months.size);
+    const latestYear = String(uniqueSorted("year").slice(-1)[0]);
+    els.reportCurrentYear.classList.toggle("is-active", state.years.size === 1 && state.years.has(latestYear) && !state.months.size);
+    els.printReport.disabled = !list.length;
+    renderReportKpis(list, comparison);
+    renderReportTimeline(list);
+    renderReportChannels(list, comparison);
+    renderReportSystems(list, comparison);
+    renderReportServices(list);
+    renderReportAttention(list, comparison);
+  }
+
   function render() {
     const filtered = filterRecords();
     els.exportCsv.disabled = !filtered.length;
@@ -603,6 +979,7 @@
     renderRanking(filtered);
     renderAnnualLeaders(filtered);
     renderTable(filtered);
+    renderReport(filtered);
   }
 
   function bindCheckboxGroup(container, selectedSet, onChange) {
@@ -628,11 +1005,35 @@
     });
   }
 
+  function setActiveView(view) {
+    const reportActive = view === "report";
+    els.dashboardView.hidden = reportActive;
+    els.reportView.hidden = !reportActive;
+    els.dashboardTab.classList.toggle("is-active", !reportActive);
+    els.reportTab.classList.toggle("is-active", reportActive);
+    els.dashboardTab.setAttribute("aria-selected", String(!reportActive));
+    els.reportTab.setAttribute("aria-selected", String(reportActive));
+    document.body.classList.toggle("report-is-active", reportActive);
+  }
+
+  function openView(view) {
+    setActiveView(view);
+    const hash = view === "report" ? "#relatorio" : "#visao-geral";
+    if (window.location.hash !== hash) window.history.replaceState(null, "", hash);
+  }
+
+  function refreshTimeFilters() {
+    renderCheckboxGroup(els.yearFilter, uniqueSorted("year"), state.years, null, "year", "Todos os anos");
+    syncMonthFilter();
+  }
+
   function bindEvents() {
     els.contrastToggle.addEventListener("click", () => {
       const isActive = document.body.classList.toggle("high-contrast");
       els.contrastToggle.setAttribute("aria-pressed", String(isActive));
     });
+    els.dashboardTab.addEventListener("click", () => openView("dashboard"));
+    els.reportTab.addEventListener("click", () => openView("report"));
     els.yearFilterButton.addEventListener("click", () => toggleCombo(els.yearFilterButton, els.yearFilter));
     els.monthFilterButton.addEventListener("click", () => toggleCombo(els.monthFilterButton, els.monthFilter));
     els.appFilterButton.addEventListener("click", () => toggleCombo(els.appFilterButton, els.appFilter));
@@ -663,6 +1064,21 @@
       render();
     });
     els.exportCsv.addEventListener("click", exportCsv);
+    els.reportAccumulated.addEventListener("click", () => {
+      state.years.clear();
+      state.months.clear();
+      refreshTimeFilters();
+      render();
+    });
+    els.reportCurrentYear.addEventListener("click", () => {
+      const latestYear = String(uniqueSorted("year").slice(-1)[0]);
+      state.years.clear();
+      state.years.add(latestYear);
+      state.months.clear();
+      refreshTimeFilters();
+      render();
+    });
+    els.printReport.addEventListener("click", () => window.print());
   }
 
   function init() {
@@ -673,6 +1089,7 @@
     renderCheckboxGroup(els.serviceFilter, uniqueSorted("service"), state.services, null, "service", "Todos os servicos");
     bindEvents();
     render();
+    setActiveView(window.location.hash === "#relatorio" ? "report" : "dashboard");
   }
 
   init();
